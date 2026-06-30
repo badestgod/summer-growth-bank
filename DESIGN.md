@@ -114,6 +114,14 @@ All spacing derives from 4px.
 - **Accessibility**: balance announced as text.
 - **Motion**: no continuous animation.
 
+### Profile Manager
+- **Structure**: child profile selector, add action, editable child name, backup actions.
+- **Variants**: sidebar stacked on mobile and desktop.
+- **Spacing**: --space-3 internal gaps, --space-2 selector/action gap.
+- **States**: default, focus, destructive delete, import error through status line.
+- **Accessibility**: native select, labeled text input, file input visually hidden but keyboard-safe.
+- **Motion**: button press only; no continuous animation.
+
 ## 6. Motion & Interaction
 
 ### Timing

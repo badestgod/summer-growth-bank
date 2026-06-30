@@ -191,6 +191,28 @@
         font-weight: 800;
       }
 
+      .profile-tools {
+        display: grid;
+        gap: var(--space-3);
+      }
+
+      .profile-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: var(--space-2);
+        align-items: center;
+      }
+
+      .profile-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2);
+      }
+
+      .profile-actions button {
+        flex: 1 1 116px;
+      }
+
       .coin {
         display: inline-grid;
         min-width: 24px;
@@ -402,6 +424,7 @@
 
       textarea,
       input[type="text"],
+      input[type="file"],
       select {
         width: 100%;
         min-height: 44px;
@@ -523,6 +546,23 @@
         line-height: 1.7;
       }
 
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        min-height: 0;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      input.sr-only {
+        width: 1px;
+      }
+
       @media (max-width: 980px) {
         .topbar,
         .layout {
@@ -627,8 +667,26 @@
           </section>
 
           <section class="side-section">
-            <label for="childName"><strong>孩子姓名</strong></label>
-            <input id="childName" type="text" placeholder="例如：小树苗">
+            <div class="profile-tools">
+              <div>
+                <label for="profileSelect"><strong>孩子档案</strong></label>
+                <div class="profile-row">
+                  <select id="profileSelect" aria-label="选择孩子档案"></select>
+                  <button class="ghost-button" id="addProfile">新增</button>
+                </div>
+              </div>
+              <div>
+                <label for="childName"><strong>孩子姓名</strong></label>
+                <input id="childName" type="text" placeholder="例如：小树苗">
+              </div>
+              <div class="profile-actions" aria-label="档案操作">
+                <button class="ghost-button" id="exportBackup">导出备份</button>
+                <button class="ghost-button" id="importBackup">导入备份</button>
+                <button class="danger-button" id="deleteProfile">删除档案</button>
+              </div>
+              <input class="sr-only" id="backupFile" type="file" accept="application/json,.json">
+              <p class="muted">数据保存在当前浏览器。导出备份后，可以在另一台设备导入继续使用。</p>
+            </div>
           </section>
 
           <section class="side-section">
@@ -804,7 +862,8 @@
       ];
 
       const storageKey = "summer-growth-bank-state";
-      const initialState = {
+      const appVersion = 2;
+      const initialProfileState = {
         childName: "",
         completed: [],
         balance: 0,
@@ -813,26 +872,73 @@
         works: []
       };
 
-      let state = loadState();
+      let familyState = loadFamilyState();
+      let state = getActiveProfile();
       let activeFilter = "all";
 
-      function loadState() {
+      function createProfile(name = "") {
+        return {
+          id: `child-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          createdAt: new Date().toISOString(),
+          ...structuredClone(initialProfileState),
+          childName: name
+        };
+      }
+
+      function normalizeProfile(profile) {
+        return {
+          ...structuredClone(initialProfileState),
+          ...profile,
+          id: profile.id || `child-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          childName: profile.childName || ""
+        };
+      }
+
+      function buildFamilyState(profiles, activeProfileId) {
+        const normalizedProfiles = profiles.map(normalizeProfile);
+        const firstProfile = normalizedProfiles[0] || createProfile("");
+        const activeProfile = normalizedProfiles.find((profile) => profile.id === activeProfileId) || firstProfile;
+        return {
+          version: appVersion,
+          activeProfileId: activeProfile.id,
+          profiles: normalizedProfiles.length ? normalizedProfiles : [firstProfile]
+        };
+      }
+
+      function loadFamilyState() {
         const raw = localStorage.getItem(storageKey);
-        if (!raw) return structuredClone(initialState);
+        if (!raw) return buildFamilyState([createProfile("")]);
         try {
-          return { ...structuredClone(initialState), ...JSON.parse(raw) };
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed.profiles)) {
+            return buildFamilyState(parsed.profiles, parsed.activeProfileId);
+          }
+          return buildFamilyState([parsed], parsed.id);
         } catch (error) {
           console.warn("无法读取本地数据，已使用初始状态。", error);
-          return structuredClone(initialState);
+          return buildFamilyState([createProfile("")]);
         }
       }
 
+      function getActiveProfile() {
+        return familyState.profiles.find((profile) => profile.id === familyState.activeProfileId) || familyState.profiles[0];
+      }
+
       function saveState() {
-        localStorage.setItem(storageKey, JSON.stringify(state));
+        localStorage.setItem(storageKey, JSON.stringify(familyState));
       }
 
       function showStatus(message) {
         byId("statusLine").textContent = message;
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
       }
 
       function byId(id) {
@@ -868,6 +974,7 @@
         byId("topBalance").textContent = String(state.balance);
         byId("sideBalance").textContent = String(state.balance);
         byId("childName").value = state.childName;
+        renderProfiles();
         renderSideTasks();
         renderDepositList();
         renderDimensionMap();
@@ -878,6 +985,13 @@
         renderReviews();
         renderRewards();
         renderWorks();
+      }
+
+      function renderProfiles() {
+        byId("profileSelect").innerHTML = familyState.profiles.map((profile, index) => {
+          const name = profile.childName.trim() || `未命名孩子${index + 1}`;
+          return `<option value="${profile.id}" ${profile.id === state.id ? "selected" : ""}>${escapeHtml(name)}</option>`;
+        }).join("");
       }
 
       function renderSideTasks() {
@@ -1011,6 +1125,96 @@
         renderAll();
       }
 
+      function switchProfile(profileId) {
+        const nextProfile = familyState.profiles.find((profile) => profile.id === profileId);
+        if (!nextProfile) return;
+        familyState.activeProfileId = nextProfile.id;
+        state = nextProfile;
+        activeFilter = "all";
+        saveState();
+        showStatus(`已切换到${state.childName || "未命名孩子"}的档案。`);
+        renderAll();
+      }
+
+      function addProfile() {
+        const name = window.prompt("请输入孩子姓名：", "");
+        if (name === null) return;
+        const profile = createProfile(name.trim() || "未命名孩子");
+        familyState.profiles = [...familyState.profiles, profile];
+        familyState.activeProfileId = profile.id;
+        state = profile;
+        activeFilter = "all";
+        saveState();
+        showStatus("新孩子档案已创建。");
+        renderAll();
+      }
+
+      function deleteActiveProfile() {
+        if (familyState.profiles.length <= 1) {
+          showStatus("至少需要保留一个孩子档案。");
+          return;
+        }
+        const name = state.childName || "未命名孩子";
+        const confirmed = window.confirm(`确定删除“${name}”的档案吗？这个操作会删除该孩子的积分、复盘和作品记录。`);
+        if (!confirmed) return;
+        familyState.profiles = familyState.profiles.filter((profile) => profile.id !== state.id);
+        familyState.activeProfileId = familyState.profiles[0].id;
+        state = getActiveProfile();
+        activeFilter = "all";
+        saveState();
+        showStatus(`已删除${name}的档案。`);
+        renderAll();
+      }
+
+      function exportBackup() {
+        const backup = {
+          exportedAt: new Date().toISOString(),
+          app: "summer-growth-bank",
+          ...familyState
+        };
+        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        const date = new Date().toISOString().slice(0, 10);
+        link.href = url;
+        link.download = `暑假成长积分银行备份-${date}.json`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+        showStatus("备份文件已导出。");
+      }
+
+      function importBackupFile(file) {
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const parsed = JSON.parse(String(reader.result || ""));
+            if (!Array.isArray(parsed.profiles) && !("childName" in parsed)) {
+              throw new Error("备份文件里没有孩子档案。");
+            }
+            const nextFamilyState = Array.isArray(parsed.profiles)
+              ? buildFamilyState(parsed.profiles, parsed.activeProfileId)
+              : buildFamilyState([parsed], parsed.id);
+            const confirmed = window.confirm("导入备份会替换当前浏览器里的全部孩子档案，确定继续吗？");
+            if (!confirmed) return;
+            familyState = nextFamilyState;
+            state = getActiveProfile();
+            activeFilter = "all";
+            saveState();
+            showStatus("备份已导入，孩子档案已恢复。");
+            renderAll();
+          } catch (error) {
+            console.warn("导入备份失败。", error);
+            showStatus("导入失败，请选择积分银行导出的 JSON 备份文件。");
+          } finally {
+            byId("backupFile").value = "";
+          }
+        };
+        reader.readAsText(file);
+      }
+
       document.addEventListener("click", (event) => {
         const target = event.target.closest("button");
         if (!target) return;
@@ -1049,17 +1253,28 @@
         if (target.dataset.saveReward) saveReward(target.dataset.saveReward);
         if (target.dataset.redeem) redeemReward(target.dataset.redeem);
         if (target.id === "saveWork") saveWork();
+        if (target.id === "addProfile") addProfile();
+        if (target.id === "deleteProfile") deleteActiveProfile();
+        if (target.id === "exportBackup") exportBackup();
+        if (target.id === "importBackup") byId("backupFile").click();
       });
 
       document.addEventListener("change", (event) => {
         if (event.target.matches("[data-task]")) {
           toggleTask(event.target.dataset.task, event.target.checked);
         }
+        if (event.target.id === "profileSelect") {
+          switchProfile(event.target.value);
+        }
+        if (event.target.id === "backupFile") {
+          importBackupFile(event.target.files[0]);
+        }
       });
 
       byId("childName").addEventListener("input", (event) => {
         state.childName = event.target.value;
         saveState();
+        renderProfiles();
       });
 
       function saveReview() {
