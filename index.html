@@ -1,0 +1,1157 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="暑假成长积分银行，小程序风格离线原型。">
+    <title>暑假成长积分银行</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --surface-primary: #F6F5E8;
+        --surface-secondary: #EEF5DD;
+        --surface-elevated: #FFFDF2;
+        --surface-mint: #DDEDD0;
+        --text-primary: #213A31;
+        --text-secondary: #63746B;
+        --text-tertiary: #8A978F;
+        --border-default: #D7E3CF;
+        --border-subtle: #E8EDD9;
+        --accent-primary: #4E9B83;
+        --accent-hover: #3F856F;
+        --accent-warm: #F2BD54;
+        --status-success: #3D8E63;
+        --status-warning: #B97825;
+        --status-error: #B66555;
+        --shadow-default: 0 10px 30px rgba(57, 91, 74, 0.10);
+        --shadow-prominent: 0 18px 48px rgba(57, 91, 74, 0.14);
+        --space-1: 4px;
+        --space-2: 8px;
+        --space-3: 12px;
+        --space-4: 16px;
+        --space-5: 20px;
+        --space-6: 24px;
+        --space-8: 32px;
+        --space-10: 40px;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        color: var(--text-primary);
+        font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+        background:
+          linear-gradient(90deg, rgba(78, 155, 131, 0.045) 1px, transparent 1px),
+          linear-gradient(0deg, rgba(78, 155, 131, 0.045) 1px, transparent 1px),
+          radial-gradient(circle at 82% 18%, rgba(221, 237, 208, 0.9), transparent 32%),
+          var(--surface-primary);
+        background-size: 28px 28px, 28px 28px, auto, auto;
+      }
+
+      button,
+      input,
+      textarea,
+      select {
+        font: inherit;
+      }
+
+      button {
+        border: 0;
+        cursor: pointer;
+      }
+
+      button:focus-visible,
+      input:focus-visible,
+      textarea:focus-visible,
+      select:focus-visible {
+        outline: 3px solid rgba(78, 155, 131, 0.35);
+        outline-offset: 2px;
+      }
+
+      .app-shell {
+        width: min(100%, 1320px);
+        margin: 0 auto;
+        padding: var(--space-5);
+      }
+
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        display: grid;
+        grid-template-columns: minmax(250px, 1fr) auto minmax(170px, 1fr);
+        align-items: center;
+        gap: var(--space-4);
+        padding: var(--space-3) 0 var(--space-5);
+        background: linear-gradient(180deg, var(--surface-primary) 78%, rgba(246, 245, 232, 0));
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        min-width: 0;
+      }
+
+      .brand-mark {
+        display: grid;
+        width: 42px;
+        height: 42px;
+        place-items: center;
+        border: 3px solid var(--accent-primary);
+        border-radius: 50%;
+        color: var(--status-warning);
+        background: #FFF2BC;
+        font-weight: 800;
+      }
+
+      .brand h1 {
+        margin: 0;
+        font-size: 26px;
+        line-height: 1.15;
+      }
+
+      .brand p,
+      .page-lead,
+      .muted {
+        margin: 0;
+        color: var(--text-secondary);
+      }
+
+      .tabs {
+        display: flex;
+        justify-content: center;
+        gap: var(--space-2);
+        overflow-x: auto;
+        white-space: nowrap;
+      }
+
+      .tab-button,
+      .filter-button,
+      .ghost-button,
+      .primary-button,
+      .danger-button {
+        min-height: 40px;
+        border-radius: 999px;
+        padding: 0 var(--space-4);
+        transition: transform 120ms ease-out, background 120ms ease-out, color 120ms ease-out;
+      }
+
+      .tab-button,
+      .filter-button,
+      .ghost-button {
+        color: var(--text-primary);
+        background: rgba(255, 253, 242, 0.72);
+        border: 1px solid var(--border-default);
+      }
+
+      .tab-button:hover,
+      .filter-button:hover,
+      .ghost-button:hover {
+        background: var(--surface-mint);
+      }
+
+      .tab-button[aria-pressed="true"],
+      .filter-button.active,
+      .primary-button {
+        color: white;
+        background: var(--accent-primary);
+        border: 1px solid var(--accent-primary);
+      }
+
+      .primary-button:hover {
+        background: var(--accent-hover);
+      }
+
+      .danger-button {
+        color: white;
+        background: var(--status-error);
+      }
+
+      .tab-button:active,
+      .filter-button:active,
+      .ghost-button:active,
+      .primary-button:active,
+      .danger-button:active {
+        transform: translateY(1px) scale(0.99);
+      }
+
+      .balance-pill {
+        justify-self: end;
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        min-height: 42px;
+        padding: 0 var(--space-4);
+        border: 1px solid #E8D69F;
+        border-radius: 999px;
+        background: #FFF5CC;
+        font-weight: 800;
+      }
+
+      .coin {
+        display: inline-grid;
+        min-width: 24px;
+        height: 24px;
+        place-items: center;
+        border: 2px solid #D39C32;
+        border-radius: 50%;
+        color: #8A5D15;
+        background: #FFE39C;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 300px 1fr;
+        gap: var(--space-5);
+      }
+
+      .sidebar,
+      .main-panel,
+      .card {
+        border: 1px solid var(--border-default);
+        border-radius: 8px;
+        background: rgba(255, 253, 242, 0.78);
+        box-shadow: var(--shadow-default);
+      }
+
+      .sidebar {
+        display: grid;
+        align-content: start;
+        gap: var(--space-4);
+        background: rgba(238, 245, 221, 0.72);
+        box-shadow: none;
+      }
+
+      .side-section,
+      .main-panel,
+      .card {
+        padding: var(--space-5);
+      }
+
+      .side-section {
+        border: 1px solid var(--border-default);
+        border-radius: 8px;
+        background: rgba(255, 253, 242, 0.78);
+      }
+
+      .side-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: var(--space-3);
+      }
+
+      .side-heading h2,
+      .card h3 {
+        margin: 0;
+        font-size: 18px;
+      }
+
+      .task-row {
+        display: grid;
+        grid-template-columns: 28px 1fr auto;
+        align-items: center;
+        gap: var(--space-2);
+        min-height: 58px;
+        padding: var(--space-3);
+        border: 1px solid var(--border-subtle);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.58);
+      }
+
+      .task-row + .task-row {
+        margin-top: var(--space-2);
+      }
+
+      .task-row.done {
+        background: rgba(221, 237, 208, 0.72);
+      }
+
+      .task-row input {
+        width: 20px;
+        height: 20px;
+        accent-color: var(--accent-primary);
+      }
+
+      .task-title {
+        display: block;
+        font-weight: 750;
+      }
+
+      .tag {
+        display: inline-block;
+        margin-top: var(--space-1);
+        padding: 2px var(--space-2);
+        border-radius: 999px;
+        color: var(--status-success);
+        background: rgba(61, 142, 99, 0.12);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .point-badge {
+        display: flex;
+        align-items: center;
+        gap: var(--space-1);
+        color: #8A5D15;
+        font-weight: 800;
+      }
+
+      .page {
+        display: none;
+      }
+
+      .page.active {
+        display: block;
+        animation: reveal 220ms ease-in-out;
+      }
+
+      @keyframes reveal {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      .page-header {
+        margin-bottom: var(--space-5);
+      }
+
+      .page-header h2 {
+        margin: 0 0 var(--space-2);
+        font-size: 32px;
+        line-height: 1.2;
+      }
+
+      .map-grid {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(140px, 1fr));
+        gap: var(--space-4);
+        margin: var(--space-6) 0;
+      }
+
+      .dimension-card {
+        min-height: 160px;
+        padding: var(--space-4);
+        border: 1px solid var(--border-default);
+        border-radius: 8px;
+        background: rgba(255, 253, 242, 0.88);
+        transition: transform 160ms ease-out, border 160ms ease-out, background 160ms ease-out;
+      }
+
+      .dimension-card:hover {
+        transform: translateY(-2px);
+      }
+
+      .dimension-card.lit {
+        border-color: var(--accent-primary);
+        background: rgba(221, 237, 208, 0.9);
+      }
+
+      .dimension-index {
+        display: inline-grid;
+        width: 30px;
+        height: 30px;
+        place-items: center;
+        border-radius: 50%;
+        color: white;
+        background: var(--accent-primary);
+        font-weight: 800;
+      }
+
+      .dimension-card h3 {
+        margin: var(--space-3) 0 var(--space-2);
+        font-size: 22px;
+      }
+
+      .stars {
+        margin-top: var(--space-3);
+        color: var(--accent-warm);
+        letter-spacing: 2px;
+      }
+
+      .two-column {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--space-4);
+      }
+
+      .three-column {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: var(--space-4);
+      }
+
+      .filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2);
+        margin-bottom: var(--space-4);
+      }
+
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: var(--space-3);
+        margin-bottom: var(--space-4);
+      }
+
+      textarea,
+      input[type="text"],
+      select {
+        width: 100%;
+        min-height: 44px;
+        border: 1px solid var(--border-default);
+        border-radius: 8px;
+        padding: var(--space-3);
+        color: var(--text-primary);
+        background: rgba(255, 255, 255, 0.72);
+      }
+
+      textarea {
+        min-height: 104px;
+        resize: vertical;
+      }
+
+      .form-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: var(--space-4);
+      }
+
+      .form-grid .card:nth-child(1),
+      .form-grid .card:nth-child(2) {
+        grid-column: span 1;
+      }
+
+      .review-record,
+      .work-record {
+        padding: var(--space-4);
+        border: 1px dashed var(--border-default);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.5);
+      }
+
+      .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: var(--space-4);
+        margin-top: var(--space-5);
+      }
+
+      .metric {
+        padding: var(--space-4);
+        border: 1px solid var(--border-default);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.68);
+      }
+
+      .metric strong {
+        display: block;
+        margin-top: var(--space-2);
+        font-size: 28px;
+      }
+
+      .reward-card ul {
+        min-height: 126px;
+        padding-left: var(--space-5);
+        line-height: 1.8;
+      }
+
+      .reward-card textarea {
+        min-height: 112px;
+      }
+
+      .notice {
+        display: flex;
+        align-items: start;
+        gap: var(--space-3);
+        margin-top: var(--space-4);
+        padding: var(--space-4);
+        border: 1px solid #E8D69F;
+        border-radius: 8px;
+        background: #FFF7DA;
+        color: #674912;
+      }
+
+      .notice-mark {
+        display: grid;
+        flex: 0 0 auto;
+        width: 34px;
+        height: 34px;
+        place-items: center;
+        border-radius: 50%;
+        color: white;
+        background: var(--accent-primary);
+        font-weight: 800;
+      }
+
+      .work-list {
+        display: grid;
+        gap: var(--space-3);
+      }
+
+      .file-note {
+        padding: var(--space-3);
+        border: 1px dashed var(--border-default);
+        border-radius: 8px;
+        background: rgba(221, 237, 208, 0.38);
+      }
+
+      .empty {
+        padding: var(--space-5);
+        border: 1px dashed var(--border-default);
+        border-radius: 8px;
+        color: var(--text-secondary);
+        text-align: center;
+        background: rgba(255, 255, 255, 0.48);
+      }
+
+      .deposit-form {
+        display: grid;
+        gap: var(--space-3);
+      }
+
+      .deposit-list {
+        margin: var(--space-3) 0 0;
+        padding-left: var(--space-5);
+        color: var(--text-secondary);
+        line-height: 1.7;
+      }
+
+      @media (max-width: 980px) {
+        .topbar,
+        .layout {
+          grid-template-columns: 1fr;
+        }
+
+        .tabs {
+          justify-content: start;
+        }
+
+        .balance-pill {
+          justify-self: start;
+        }
+
+        .map-grid,
+        .three-column,
+        .form-grid,
+        .metric-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .app-shell {
+          padding: var(--space-3);
+        }
+
+        .brand h1 {
+          font-size: 22px;
+        }
+
+        .side-section,
+        .main-panel,
+        .card {
+          padding: var(--space-4);
+        }
+
+        .map-grid,
+        .two-column,
+        .three-column,
+        .form-grid,
+        .metric-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .page-header h2 {
+          font-size: 28px;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 1ms !important;
+          scroll-behavior: auto !important;
+          transition-duration: 1ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">分</div>
+          <div>
+            <h1>暑假成长积分银行</h1>
+            <p>记录每一点努力，看见每一次成长</p>
+          </div>
+        </div>
+        <nav class="tabs" aria-label="主导航">
+          <button class="tab-button" data-tab="map" aria-pressed="true">成长地图</button>
+          <button class="tab-button" data-tab="tasks" aria-pressed="false">今日打卡</button>
+          <button class="tab-button" data-tab="review" aria-pressed="false">每周复盘</button>
+          <button class="tab-button" data-tab="rewards" aria-pressed="false">奖励兑换</button>
+          <button class="tab-button" data-tab="works" aria-pressed="false">成长作品</button>
+        </nav>
+        <div class="balance-pill" aria-live="polite">
+          <span class="coin">分</span>
+          <span id="topBalance">0</span>
+          <span>成长分</span>
+        </div>
+      </header>
+
+      <div class="layout">
+        <aside class="sidebar" aria-label="成长账户侧栏">
+          <section class="side-section">
+            <div class="side-heading">
+              <h2>今日任务</h2>
+              <button class="ghost-button" data-tab-shortcut="tasks">全部</button>
+            </div>
+            <div id="sideTasks"></div>
+          </section>
+
+          <section class="side-section">
+            <p class="muted">我的成长账户</p>
+            <h2><span id="sideBalance">0</span> <span class="coin">分</span></h2>
+            <p class="muted">积分用来兑换看得见的鼓励，也用来回望坚持的脚印。</p>
+            <button class="primary-button" data-tab-shortcut="rewards">去兑换</button>
+            <p id="statusLine" class="muted" aria-live="polite" style="margin-top: var(--space-3);"></p>
+          </section>
+
+          <section class="side-section">
+            <label for="childName"><strong>孩子姓名</strong></label>
+            <input id="childName" type="text" placeholder="例如：小树苗">
+          </section>
+
+          <section class="side-section">
+            <h2>今日成长存款单</h2>
+            <p class="muted">完成任意一项任务，就能存入新的成长资产。</p>
+            <ul id="depositList" class="deposit-list"></ul>
+          </section>
+        </aside>
+
+        <main class="main-panel">
+          <section id="map" class="page active" aria-labelledby="mapTitle">
+            <div class="page-header">
+              <h2 id="mapTitle">我的暑假成长地图</h2>
+              <p class="page-lead">点击一个关卡，打开今天这一类的成长任务。完成后，关卡会被点亮。</p>
+            </div>
+            <div class="map-grid" id="dimensionMap"></div>
+            <div class="two-column">
+              <article class="card">
+                <h3>今日推荐三项</h3>
+                <div id="recommendedTasks"></div>
+              </article>
+              <article class="card">
+                <h3>奖励宝箱</h3>
+                <p class="muted">先把努力存进账户，再兑换真正被看见的奖励。</p>
+                <div class="notice">
+                  <span class="notice-mark">记</span>
+                  <p>兑换前，请孩子说一说：这个奖励对应了我哪一段坚持。</p>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section id="tasks" class="page" aria-labelledby="tasksTitle">
+            <div class="page-header">
+              <h2 id="tasksTitle">今日成长任务</h2>
+              <p class="page-lead">五大能量均衡存入，重点方向可以多加一点。</p>
+            </div>
+            <div class="toolbar">
+              <div class="filters" id="filters"></div>
+              <div>
+                <button class="primary-button" id="completeRecommended">完成推荐三项</button>
+                <button class="danger-button" id="clearToday">清空今日</button>
+              </div>
+            </div>
+            <div class="two-column" id="taskList"></div>
+          </section>
+
+          <section id="review" class="page" aria-labelledby="reviewTitle">
+            <div class="page-header">
+              <h2 id="reviewTitle">每周家庭复盘</h2>
+              <p class="page-lead">5 到 10 分钟，看见进步，也调整下周节奏。</p>
+            </div>
+            <div class="form-grid">
+              <article class="card">
+                <h3>这周我最棒的一件事是</h3>
+                <textarea id="bestThing" placeholder="写下一个值得被看见的努力"></textarea>
+              </article>
+              <article class="card">
+                <h3>这周我遇到的困难是</h3>
+                <textarea id="hardThing" placeholder="困难可以被说出来，也可以一起拆小"></textarea>
+              </article>
+              <article class="card">
+                <h3>下周我想调整的是</h3>
+                <textarea id="nextChange" placeholder="选择一个小改变"></textarea>
+              </article>
+              <article class="card">
+                <h3>家长看见的进步</h3>
+                <textarea id="parentView" placeholder="这周我看见孩子的一个进步是"></textarea>
+              </article>
+              <article class="card">
+                <h3>孩子希望的支持</h3>
+                <textarea id="supportNeed" placeholder="我希望爸爸妈妈继续支持我的是"></textarea>
+              </article>
+              <article class="card">
+                <h3>复盘记录</h3>
+                <div id="reviewRecords" class="empty">还没有复盘记录。</div>
+              </article>
+            </div>
+            <div class="toolbar" style="margin-top: var(--space-4);">
+              <button class="primary-button" id="saveReview">保存复盘</button>
+              <button class="ghost-button" id="loadLastReview">回看最近一次</button>
+            </div>
+            <div class="metric-grid">
+              <div class="metric"><span class="muted">今日完成</span><strong id="metricDone">0</strong></div>
+              <div class="metric"><span class="muted">今日存入</span><strong id="metricPoints">0</strong></div>
+              <div class="metric"><span class="muted">点亮维度</span><strong id="metricDims">0/5</strong></div>
+            </div>
+          </section>
+
+          <section id="rewards" class="page" aria-labelledby="rewardsTitle">
+            <div class="page-header">
+              <h2 id="rewardsTitle">我的奖励兑换</h2>
+              <p class="page-lead">奖励不是控制孩子，而是让努力被认真看见。</p>
+            </div>
+            <div class="three-column" id="rewardList"></div>
+            <div class="notice">
+              <span class="notice-mark">记</span>
+              <p>积分不是为了控制孩子，而是为了让孩子看见：我的努力是有价值的。</p>
+            </div>
+          </section>
+
+          <section id="works" class="page" aria-labelledby="worksTitle">
+            <div class="page-header">
+              <h2 id="worksTitle">成长作品收集</h2>
+              <p class="page-lead">把画、日记、做饭照片、实验记录和运动片段存进暑假成长档案。</p>
+            </div>
+            <div class="two-column">
+              <article class="card">
+                <h3>新增作品</h3>
+                <div class="deposit-form">
+                  <input id="workTitle" type="text" placeholder="作品名称">
+                  <select id="workType">
+                    <option>一张画</option>
+                    <option>一篇日记</option>
+                    <option>阅读分享</option>
+                    <option>做饭照片</option>
+                    <option>实验记录</option>
+                    <option>运动片段</option>
+                  </select>
+                  <textarea id="workStory" placeholder="写下作品背后的故事"></textarea>
+                  <div class="file-note">
+                    <label for="workFile"><strong>上传图片或视频</strong></label>
+                    <input id="workFile" type="file" accept="image/*,video/*">
+                    <p class="muted">离线原型会记录文件名，真实小程序可接入云存储。</p>
+                  </div>
+                  <button class="primary-button" id="saveWork">存入成长档案</button>
+                </div>
+              </article>
+              <article class="card">
+                <h3>我的暑假成长档案</h3>
+                <div id="workList" class="work-list"></div>
+              </article>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <script>
+      const dimensions = [
+        { id: "study", name: "学习力", text: "阅读、练字、复盘，让学习变成稳定的小习惯。" },
+        { id: "sport", name: "运动力", text: "运动和户外，让身体先充满假期的电量。" },
+        { id: "control", name: "自控力", text: "安排时间、管理屏幕，把计划握在自己手里。" },
+        { id: "explore", name: "探索力", text: "兴趣、情绪和沟通，找到属于自己的好奇心。" },
+        { id: "practice", name: "实践力", text: "家务、做饭、志愿服务，把成长做出来。" }
+      ];
+
+      const tasks = [
+        { id: "daily-study", title: "完成今日学习任务", dim: "study", points: 1, recommended: true },
+        { id: "read-20", title: "阅读20分钟", dim: "study", points: 1, recommended: true },
+        { id: "journal", title: "写日记", dim: "study", points: 2, recommended: false },
+        { id: "copybook", title: "练字20分钟", dim: "study", points: 1, recommended: false },
+        { id: "poem", title: "背诵一首古诗", dim: "study", points: 1, recommended: false },
+        { id: "words", title: "背诵10个英语单词", dim: "study", points: 1, recommended: false },
+        { id: "exercise", title: "运动30分钟", dim: "sport", points: 1, recommended: true },
+        { id: "outdoor", title: "户外活动2小时", dim: "sport", points: 2, recommended: false },
+        { id: "screen", title: "屏幕时间不超过2小时", dim: "control", points: 2, recommended: true },
+        { id: "bag", title: "自己准备出行物品", dim: "control", points: 1, recommended: false },
+        { id: "schedule", title: "自己安排作业时间", dim: "control", points: 1, recommended: false },
+        { id: "review", title: "每周复盘", dim: "control", points: 2, recommended: false },
+        { id: "emotion", title: "说出今天一种情绪", dim: "explore", points: 1, recommended: false },
+        { id: "question", title: "提出一个好问题", dim: "explore", points: 1, recommended: false },
+        { id: "interest", title: "兴趣探索30分钟", dim: "explore", points: 2, recommended: false },
+        { id: "chores", title: "完成一项家务", dim: "practice", points: 1, recommended: false },
+        { id: "cook", title: "参与做一道菜", dim: "practice", points: 2, recommended: false },
+        { id: "service", title: "做一次家庭服务", dim: "practice", points: 2, recommended: false }
+      ];
+
+      const rewardDefaults = [
+        { id: "small", title: "10分小奖励", cost: 10, items: ["选择一次家庭电影", "点播一次睡前故事", "选择一次晚餐菜单", "多一次亲子游戏时间"] },
+        { id: "middle", title: "30分中奖励", cost: 30, items: ["买一本喜欢的书", "一次朋友聚会", "一次亲子外出", "一个手工或科学材料包"] },
+        { id: "big", title: "60分大奖励", cost: 60, items: ["一次短途旅行", "一次主题体验活动", "实现一个孩子期待的小愿望"] }
+      ];
+
+      const storageKey = "summer-growth-bank-state";
+      const initialState = {
+        childName: "",
+        completed: [],
+        balance: 0,
+        rewards: rewardDefaults.map((reward) => ({ id: reward.id, items: reward.items.join("\\n") })),
+        reviews: [],
+        works: []
+      };
+
+      let state = loadState();
+      let activeFilter = "all";
+
+      function loadState() {
+        const raw = localStorage.getItem(storageKey);
+        if (!raw) return structuredClone(initialState);
+        try {
+          return { ...structuredClone(initialState), ...JSON.parse(raw) };
+        } catch (error) {
+          console.warn("无法读取本地数据，已使用初始状态。", error);
+          return structuredClone(initialState);
+        }
+      }
+
+      function saveState() {
+        localStorage.setItem(storageKey, JSON.stringify(state));
+      }
+
+      function showStatus(message) {
+        byId("statusLine").textContent = message;
+      }
+
+      function byId(id) {
+        return document.getElementById(id);
+      }
+
+      function getDimension(id) {
+        return dimensions.find((dimension) => dimension.id === id);
+      }
+
+      function completedTasks() {
+        return tasks.filter((task) => state.completed.includes(task.id));
+      }
+
+      function totalTodayPoints() {
+        return completedTasks().reduce((total, task) => total + task.points, 0);
+      }
+
+      function litDimensions() {
+        return new Set(completedTasks().map((task) => task.dim));
+      }
+
+      function setTab(tabId) {
+        document.querySelectorAll(".page").forEach((page) => {
+          page.classList.toggle("active", page.id === tabId);
+        });
+        document.querySelectorAll(".tab-button").forEach((button) => {
+          button.setAttribute("aria-pressed", String(button.dataset.tab === tabId));
+        });
+      }
+
+      function renderAll() {
+        byId("topBalance").textContent = String(state.balance);
+        byId("sideBalance").textContent = String(state.balance);
+        byId("childName").value = state.childName;
+        renderSideTasks();
+        renderDepositList();
+        renderDimensionMap();
+        renderRecommendedTasks();
+        renderFilters();
+        renderTaskList();
+        renderMetrics();
+        renderReviews();
+        renderRewards();
+        renderWorks();
+      }
+
+      function renderSideTasks() {
+        const sideTasks = tasks.slice(1, 4).map(taskRowHtml).join("");
+        byId("sideTasks").innerHTML = sideTasks;
+      }
+
+      function renderDepositList() {
+        const done = completedTasks();
+        byId("depositList").innerHTML = done.length
+          ? done.map((task) => `<li>${task.title}，存入${task.points}分</li>`).join("")
+          : "<li>还没有存入记录。</li>";
+      }
+
+      function renderDimensionMap() {
+        const lit = litDimensions();
+        byId("dimensionMap").innerHTML = dimensions.map((dimension, index) => {
+          const starCount = tasks.filter((task) => task.dim === dimension.id && state.completed.includes(task.id)).length;
+          const stars = "★★★★★".slice(0, Math.min(5, starCount)).padEnd(5, "☆");
+          return `
+            <button class="dimension-card ${lit.has(dimension.id) ? "lit" : ""}" data-dimension="${dimension.id}">
+              <span class="dimension-index">${index + 1}</span>
+              <h3>${dimension.name}</h3>
+              <p class="muted">${dimension.text}</p>
+              <div class="stars" aria-label="点亮星级">${stars}</div>
+            </button>
+          `;
+        }).join("");
+      }
+
+      function renderRecommendedTasks() {
+        byId("recommendedTasks").innerHTML = tasks.filter((task) => task.recommended).slice(0, 3).map(taskRowHtml).join("");
+      }
+
+      function renderFilters() {
+        const filterItems = [{ id: "all", name: "全部" }, ...dimensions];
+        byId("filters").innerHTML = filterItems.map((item) => `
+          <button class="filter-button ${activeFilter === item.id ? "active" : ""}" data-filter="${item.id}">${item.name}</button>
+        `).join("");
+      }
+
+      function renderTaskList() {
+        const visibleTasks = activeFilter === "all" ? tasks : tasks.filter((task) => task.dim === activeFilter);
+        byId("taskList").innerHTML = visibleTasks.map(taskRowHtml).join("");
+      }
+
+      function taskRowHtml(task) {
+        const dimension = getDimension(task.dim);
+        const checked = state.completed.includes(task.id);
+        return `
+          <label class="task-row ${checked ? "done" : ""}">
+            <input type="checkbox" data-task="${task.id}" ${checked ? "checked" : ""}>
+            <span>
+              <span class="task-title">${task.title}</span>
+              <span class="tag">${dimension ? dimension.name : ""}</span>
+            </span>
+            <span class="point-badge"><span class="coin">分</span>+${task.points}</span>
+          </label>
+        `;
+      }
+
+      function renderMetrics() {
+        const lit = litDimensions();
+        byId("metricDone").textContent = String(completedTasks().length);
+        byId("metricPoints").textContent = String(totalTodayPoints());
+        byId("metricDims").textContent = `${lit.size}/5`;
+      }
+
+      function renderReviews() {
+        if (!state.reviews.length) {
+          byId("reviewRecords").className = "empty";
+          byId("reviewRecords").textContent = "还没有复盘记录。";
+          return;
+        }
+        byId("reviewRecords").className = "review-record";
+        byId("reviewRecords").innerHTML = state.reviews.slice(-3).reverse().map((review) => `
+          <p><strong>${review.date}</strong></p>
+          <p>最棒的事：${review.bestThing || "未填写"}</p>
+          <p>遇到的困难：${review.hardThing || "未填写"}</p>
+        `).join("");
+      }
+
+      function renderRewards() {
+        byId("rewardList").innerHTML = rewardDefaults.map((reward) => {
+          const saved = state.rewards.find((item) => item.id === reward.id);
+          const text = saved ? saved.items : reward.items.join("\\n");
+          const list = text.split("\\n").filter(Boolean).map((item) => `<li>${item}</li>`).join("");
+          return `
+            <article class="card reward-card">
+              <h3>${reward.title} <span class="balance-pill" style="float: right; min-height: 32px;"><span class="coin">分</span>${reward.cost}</span></h3>
+              <ul>${list}</ul>
+              <textarea data-reward="${reward.id}" aria-label="${reward.title}内容">${text}</textarea>
+              <div class="toolbar">
+                <button class="primary-button" data-save-reward="${reward.id}">保存奖励设置</button>
+                <button class="ghost-button" data-redeem="${reward.id}">兑换</button>
+              </div>
+            </article>
+          `;
+        }).join("");
+      }
+
+      function renderWorks() {
+        if (!state.works.length) {
+          byId("workList").innerHTML = '<div class="empty">还没有作品。暑假结束后，这里会成为孩子自己的成长档案。</div>';
+          return;
+        }
+        byId("workList").innerHTML = state.works.slice().reverse().map((work) => `
+          <article class="work-record">
+            <p><strong>${work.title}</strong> <span class="tag">${work.type}</span></p>
+            <p class="muted">${work.story || "没有填写故事。"}</p>
+            <p class="muted">文件：${work.fileName || "未上传文件"}｜${work.date}</p>
+          </article>
+        `).join("");
+      }
+
+      function toggleTask(taskId, checked) {
+        const task = tasks.find((item) => item.id === taskId);
+        if (!task) return;
+        const wasChecked = state.completed.includes(taskId);
+        if (checked && !wasChecked) {
+          state.completed = [...state.completed, taskId];
+          state.balance += task.points;
+          showStatus(`${task.title}已存入${task.points}分。`);
+        }
+        if (!checked && wasChecked) {
+          state.completed = state.completed.filter((id) => id !== taskId);
+          state.balance = Math.max(0, state.balance - task.points);
+          showStatus(`${task.title}已从今日存款单移除。`);
+        }
+        saveState();
+        renderAll();
+      }
+
+      document.addEventListener("click", (event) => {
+        const target = event.target.closest("button");
+        if (!target) return;
+        if (target.dataset.tab) setTab(target.dataset.tab);
+        if (target.dataset.tabShortcut) setTab(target.dataset.tabShortcut);
+        if (target.dataset.dimension) {
+          activeFilter = target.dataset.dimension;
+          setTab("tasks");
+          renderAll();
+        }
+        if (target.dataset.filter) {
+          activeFilter = target.dataset.filter;
+          renderAll();
+        }
+        if (target.id === "completeRecommended") {
+          tasks.filter((task) => task.recommended).slice(0, 3).forEach((task) => {
+            if (!state.completed.includes(task.id)) {
+              state.completed = [...state.completed, task.id];
+              state.balance += task.points;
+            }
+          });
+          showStatus("推荐三项已完成，成长分已入账。");
+          saveState();
+          renderAll();
+        }
+        if (target.id === "clearToday") {
+          const removedPoints = totalTodayPoints();
+          state.completed = [];
+          state.balance = Math.max(0, state.balance - removedPoints);
+          showStatus("今日任务已清空，相关成长分已撤回。");
+          saveState();
+          renderAll();
+        }
+        if (target.id === "saveReview") saveReview();
+        if (target.id === "loadLastReview") loadLastReview();
+        if (target.dataset.saveReward) saveReward(target.dataset.saveReward);
+        if (target.dataset.redeem) redeemReward(target.dataset.redeem);
+        if (target.id === "saveWork") saveWork();
+      });
+
+      document.addEventListener("change", (event) => {
+        if (event.target.matches("[data-task]")) {
+          toggleTask(event.target.dataset.task, event.target.checked);
+        }
+      });
+
+      byId("childName").addEventListener("input", (event) => {
+        state.childName = event.target.value;
+        saveState();
+      });
+
+      function saveReview() {
+        state.reviews = [
+          ...state.reviews,
+          {
+            date: new Date().toLocaleDateString("zh-CN"),
+            bestThing: byId("bestThing").value.trim(),
+            hardThing: byId("hardThing").value.trim(),
+            nextChange: byId("nextChange").value.trim(),
+            parentView: byId("parentView").value.trim(),
+            supportNeed: byId("supportNeed").value.trim(),
+            done: completedTasks().length,
+            points: totalTodayPoints(),
+            dimensions: litDimensions().size
+          }
+        ];
+        ["bestThing", "hardThing", "nextChange", "parentView", "supportNeed"].forEach((id) => {
+          byId(id).value = "";
+        });
+        saveState();
+        showStatus("每周复盘已保存。");
+        renderAll();
+      }
+
+      function loadLastReview() {
+        const last = state.reviews[state.reviews.length - 1];
+        if (!last) return;
+        byId("bestThing").value = last.bestThing;
+        byId("hardThing").value = last.hardThing;
+        byId("nextChange").value = last.nextChange;
+        byId("parentView").value = last.parentView;
+        byId("supportNeed").value = last.supportNeed;
+      }
+
+      function saveReward(id) {
+        const textarea = document.querySelector(`[data-reward="${id}"]`);
+        state.rewards = state.rewards.map((reward) => reward.id === id ? { id, items: textarea.value } : reward);
+        saveState();
+        showStatus("奖励内容已保存。");
+        renderAll();
+      }
+
+      function redeemReward(id) {
+        const reward = rewardDefaults.find((item) => item.id === id);
+        if (!reward) return;
+        if (state.balance < reward.cost) {
+          showStatus(`还差${reward.cost - state.balance}分才能兑换${reward.title}。`);
+          return;
+        }
+        state.balance -= reward.cost;
+        state.works = [
+          ...state.works,
+          {
+            title: `兑换记录：${reward.title}`,
+            type: "奖励兑换",
+            story: "这次兑换对应了一段被坚持下来的努力。",
+            fileName: "",
+            date: new Date().toLocaleDateString("zh-CN")
+          }
+        ];
+        saveState();
+        showStatus(`${reward.title}兑换成功，已写入成长档案。`);
+        renderAll();
+      }
+
+      function saveWork() {
+        const title = byId("workTitle").value.trim();
+        if (!title) {
+          showStatus("请先填写作品名称。");
+          return;
+        }
+        const file = byId("workFile").files[0];
+        state.works = [
+          ...state.works,
+          {
+            title,
+            type: byId("workType").value,
+            story: byId("workStory").value.trim(),
+            fileName: file ? file.name : "",
+            date: new Date().toLocaleDateString("zh-CN")
+          }
+        ];
+        byId("workTitle").value = "";
+        byId("workStory").value = "";
+        byId("workFile").value = "";
+        saveState();
+        showStatus("成长作品已存入档案。");
+        renderAll();
+      }
+
+      renderAll();
+    </script>
+  </body>
+</html>
