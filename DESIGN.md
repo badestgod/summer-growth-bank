@@ -115,11 +115,19 @@ All spacing derives from 4px.
 - **Motion**: no continuous animation.
 
 ### Profile Manager
-- **Structure**: child profile selector, add action, editable child name, backup actions.
+- **Structure**: child profile selector, add action, editable child name, family sync key, backup actions.
 - **Variants**: sidebar stacked on mobile and desktop.
 - **Spacing**: --space-3 internal gaps, --space-2 selector/action gap.
-- **States**: default, focus, destructive delete, import error through status line.
-- **Accessibility**: native select, labeled text input, file input visually hidden but keyboard-safe.
+- **States**: default, focus, synced, sync error, destructive delete, import error through status line.
+- **Accessibility**: native select, labeled text/password input, file input visually hidden but keyboard-safe.
+- **Motion**: button press only; no continuous animation.
+
+### Achievement Deposit
+- **Structure**: daily achievement textarea, extra point selector, deposit action.
+- **Variants**: compact horizontal form on desktop, stacked form on mobile.
+- **Spacing**: --space-3 gaps, --space-4 card padding.
+- **States**: empty prompt, saved, replaced same-day entry.
+- **Accessibility**: labeled selector and textarea, status line confirms saved points.
 - **Motion**: button press only; no continuous animation.
 
 ## 6. Motion & Interaction
