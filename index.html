@@ -555,6 +555,13 @@
         min-height: 72px;
       }
 
+      .achievement-rule-list {
+        margin: var(--space-3) 0 0;
+        padding-left: var(--space-5);
+        color: var(--text-secondary);
+        line-height: 1.8;
+      }
+
       .deposit-list {
         margin: var(--space-3) 0 0;
         padding-left: var(--space-5);
@@ -655,6 +662,7 @@
         <nav class="tabs" aria-label="主导航">
           <button class="tab-button" data-tab="map" aria-pressed="true">成长地图</button>
           <button class="tab-button" data-tab="tasks" aria-pressed="false">今日打卡</button>
+          <button class="tab-button" data-tab="achievement" aria-pressed="false">成就加分</button>
           <button class="tab-button" data-tab="review" aria-pressed="false">每周复盘</button>
           <button class="tab-button" data-tab="rewards" aria-pressed="false">奖励兑换</button>
           <button class="tab-button" data-tab="works" aria-pressed="false">成长作品</button>
@@ -758,23 +766,44 @@
                 <button class="danger-button" id="clearToday">清空今日</button>
               </div>
             </div>
-            <article class="card achievement-card">
-              <h3>今天最有成就感的事</h3>
-              <div class="achievement-form">
-                <textarea id="achievementText" placeholder="写下一件今天最有成就感的事情"></textarea>
-                <div>
-                  <label for="achievementPoints"><strong>额外加分</strong></label>
-                  <select id="achievementPoints">
-                    <option value="1">+1 成长分</option>
-                    <option value="2" selected>+2 成长分</option>
-                    <option value="3">+3 成长分</option>
-                    <option value="5">+5 成长分</option>
-                  </select>
-                </div>
-                <button class="primary-button" id="saveAchievement">存入成就感加分</button>
-              </div>
-            </article>
             <div class="two-column" id="taskList"></div>
+          </section>
+
+          <section id="achievement" class="page" aria-labelledby="achievementTitle">
+            <div class="page-header">
+              <h2 id="achievementTitle">今日最有成就感的事</h2>
+              <p class="page-lead">这不是某个任务的附属项，而是每天一次的额外成长存款。</p>
+            </div>
+            <div class="two-column">
+              <article class="card achievement-card">
+                <h3>今天这件事值得被看见</h3>
+                <div class="achievement-form">
+                  <textarea id="achievementText" placeholder="写下一件今天最有成就感的事情"></textarea>
+                  <div>
+                    <label for="achievementPoints"><strong>额外加分</strong></label>
+                    <select id="achievementPoints">
+                      <option value="1">+1 成长分</option>
+                      <option value="2" selected>+2 成长分</option>
+                      <option value="3">+3 成长分</option>
+                      <option value="5">+5 成长分</option>
+                    </select>
+                  </div>
+                  <button class="primary-button" id="saveAchievement">存入成就感加分</button>
+                </div>
+              </article>
+              <article class="card">
+                <h3>加分规则</h3>
+                <ul class="achievement-rule-list">
+                  <li>每个孩子每天只记录一条成就感加分。</li>
+                  <li>同一天再次保存会替换原记录，并按差额修正积分。</li>
+                  <li>清空今日时，会同时撤回当天成就感加分。</li>
+                </ul>
+              </article>
+            </div>
+            <article class="card" style="margin-top: var(--space-4);">
+              <h3>最近成就感记录</h3>
+              <div id="achievementRecords" class="work-list"></div>
+            </article>
           </section>
 
           <section id="review" class="page" aria-labelledby="reviewTitle">
@@ -1149,6 +1178,16 @@
         const achievement = todayAchievement();
         byId("achievementText").value = achievement ? achievement.text : "";
         byId("achievementPoints").value = achievement ? String(achievement.points) : "2";
+        if (!state.achievements.length) {
+          byId("achievementRecords").innerHTML = '<div class="empty">还没有成就感记录。</div>';
+          return;
+        }
+        byId("achievementRecords").innerHTML = state.achievements.slice().reverse().slice(0, 6).map((achievementItem) => `
+          <article class="work-record">
+            <p><strong>${achievementItem.date}</strong> <span class="tag">+${achievementItem.points} 成长分</span></p>
+            <p class="muted">${escapeHtml(achievementItem.text)}</p>
+          </article>
+        `).join("");
       }
 
       function renderDimensionMap() {
@@ -1443,6 +1482,7 @@
         state.balance = Math.max(0, state.balance - previousPoints + points);
         saveState();
         showStatus(`成就感加分已存入${points}分。`);
+        setTab("achievement");
         renderAll();
       }
 

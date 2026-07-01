@@ -123,7 +123,7 @@ All spacing derives from 4px.
 - **Motion**: button press only; no continuous animation.
 
 ### Achievement Deposit
-- **Structure**: daily achievement textarea, extra point selector, deposit action.
+- **Structure**: standalone tab with daily achievement textarea, extra point selector, rule card, recent records.
 - **Variants**: compact horizontal form on desktop, stacked form on mobile.
 - **Spacing**: --space-3 gaps, --space-4 card padding.
 - **States**: empty prompt, saved, replaced same-day entry.
