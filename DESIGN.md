@@ -115,12 +115,20 @@ All spacing derives from 4px.
 - **Motion**: no continuous animation.
 
 ### Profile Manager
-- **Structure**: child profile selector, add action, editable child name, family sync key, backup actions.
+- **Structure**: child profile selector, add action, editable child name, account login/register, backup actions.
 - **Variants**: sidebar stacked on mobile and desktop.
 - **Spacing**: --space-3 internal gaps, --space-2 selector/action gap.
-- **States**: default, focus, synced, sync error, destructive delete, import error through status line.
+- **States**: default, focus, logged in, sync error, logged out, destructive delete, import error through status line.
 - **Accessibility**: native select, labeled text/password input, file input visually hidden but keyboard-safe.
 - **Motion**: button press only; no continuous animation.
+
+### Date Score Query
+- **Structure**: date picker, task point metric, achievement point metric, total metric, task and achievement detail lists.
+- **Variants**: metric grid on desktop, stacked cards on mobile.
+- **Spacing**: --space-4 card gaps, --space-3 control gaps.
+- **States**: selected date, empty task result, empty achievement result.
+- **Accessibility**: native date input, readable metric labels, empty states as text.
+- **Motion**: tab reveal only.
 
 ### Achievement Deposit
 - **Structure**: standalone tab with daily achievement textarea, extra point selector, rule card, recent records.

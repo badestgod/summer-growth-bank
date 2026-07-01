@@ -425,6 +425,8 @@
 
       textarea,
       input[type="text"],
+      input[type="password"],
+      input[type="date"],
       input[type="file"],
       select {
         width: 100%;
@@ -663,6 +665,7 @@
           <button class="tab-button" data-tab="map" aria-pressed="true">成长地图</button>
           <button class="tab-button" data-tab="tasks" aria-pressed="false">今日打卡</button>
           <button class="tab-button" data-tab="achievement" aria-pressed="false">成就加分</button>
+          <button class="tab-button" data-tab="history" aria-pressed="false">积分查询</button>
           <button class="tab-button" data-tab="review" aria-pressed="false">每周复盘</button>
           <button class="tab-button" data-tab="rewards" aria-pressed="false">奖励兑换</button>
           <button class="tab-button" data-tab="works" aria-pressed="false">成长作品</button>
@@ -706,21 +709,27 @@
                 <input id="childName" type="text" placeholder="例如：小树苗">
               </div>
               <div>
-                <label for="familyKey"><strong>家庭口令</strong></label>
+                <label for="accountName"><strong>用户名</strong></label>
                 <div class="profile-row">
-                  <input id="familyKey" type="password" autocomplete="current-password" placeholder="同一家庭填写同一个口令">
-                  <button class="ghost-button" id="connectSync">连接</button>
+                  <input id="accountName" type="text" autocomplete="username" placeholder="例如：chenxiaoxiao">
+                  <button class="ghost-button" id="loginAccount">登录</button>
                 </div>
-                <p id="syncStatus" class="muted" aria-live="polite">未连接服务器同步。</p>
+              </div>
+              <div>
+                <label for="accountPassword"><strong>密码</strong></label>
+                <input id="accountPassword" type="password" autocomplete="current-password" placeholder="至少 6 位">
+                <p id="syncStatus" class="muted" aria-live="polite">未登录，数据暂存在当前浏览器。</p>
               </div>
               <div class="profile-actions" aria-label="档案操作">
+                <button class="ghost-button" id="registerAccount">注册</button>
                 <button class="ghost-button" id="syncNow">立即同步</button>
+                <button class="ghost-button" id="logoutAccount">退出登录</button>
                 <button class="ghost-button" id="exportBackup">导出备份</button>
                 <button class="ghost-button" id="importBackup">导入备份</button>
                 <button class="danger-button" id="deleteProfile">删除档案</button>
               </div>
               <input class="sr-only" id="backupFile" type="file" accept="application/json,.json">
-              <p class="muted">连接家庭口令后，数据会保存到阿里云服务器；未连接时仍保存在当前浏览器。</p>
+              <p class="muted">注册或登录后，数据会保存到阿里云服务器；未登录时仍保存在当前浏览器。</p>
             </div>
           </section>
 
@@ -804,6 +813,37 @@
               <h3>最近成就感记录</h3>
               <div id="achievementRecords" class="work-list"></div>
             </article>
+          </section>
+
+          <section id="history" class="page" aria-labelledby="historyTitle">
+            <div class="page-header">
+              <h2 id="historyTitle">按日期查询积分</h2>
+              <p class="page-lead">选择某一天，查看这个孩子当天完成了哪些任务、成就感加了多少分。</p>
+            </div>
+            <article class="card">
+              <div class="achievement-form">
+                <div>
+                  <label for="historyDate"><strong>查询日期</strong></label>
+                  <input id="historyDate" type="date">
+                </div>
+                <button class="primary-button" id="queryHistory">查询积分</button>
+              </div>
+            </article>
+            <div class="metric-grid">
+              <div class="metric"><span class="muted">任务积分</span><strong id="historyTaskPoints">0</strong></div>
+              <div class="metric"><span class="muted">成就加分</span><strong id="historyAchievementPoints">0</strong></div>
+              <div class="metric"><span class="muted">当日合计</span><strong id="historyTotalPoints">0</strong></div>
+            </div>
+            <div class="two-column" style="margin-top: var(--space-4);">
+              <article class="card">
+                <h3>当天完成的任务</h3>
+                <div id="historyTasks" class="work-list"></div>
+              </article>
+              <article class="card">
+                <h3>当天成就感记录</h3>
+                <div id="historyAchievements" class="work-list"></div>
+              </article>
+            </div>
           </section>
 
           <section id="review" class="page" aria-labelledby="reviewTitle">
@@ -934,11 +974,13 @@
       ];
 
       const storageKey = "summer-growth-bank-state";
-      const syncKeyStorageKey = "summer-growth-bank-sync-key";
-      const appVersion = 3;
+      const accountTokenStorageKey = "summer-growth-bank-account-token";
+      const accountNameStorageKey = "summer-growth-bank-account-name";
+      const appVersion = 4;
       const initialProfileState = {
         childName: "",
         completed: [],
+        completedByDate: {},
         balance: 0,
         rewards: rewardDefaults.map((reward) => ({ id: reward.id, items: reward.items.join("\\n") })),
         reviews: [],
@@ -949,7 +991,8 @@
       let familyState = loadFamilyState();
       let state = getActiveProfile();
       let activeFilter = "all";
-      let familySyncKey = localStorage.getItem(syncKeyStorageKey) || "";
+      let accountToken = localStorage.getItem(accountTokenStorageKey) || "";
+      let accountName = localStorage.getItem(accountNameStorageKey) || "";
       let syncSaveTimer = 0;
       let isApplyingRemoteState = false;
 
@@ -963,9 +1006,20 @@
       }
 
       function normalizeProfile(profile) {
+        const completedByDate = Object.fromEntries(
+          Object.entries(profile.completedByDate || {}).map(([date, ids]) => [normalizeDateKey(date), ids])
+        );
+        if (!completedByDate[todayKey()] && Array.isArray(profile.completed) && profile.completed.length) {
+          completedByDate[todayKey()] = profile.completed;
+        }
         return {
           ...structuredClone(initialProfileState),
           ...profile,
+          completedByDate,
+          completed: completedByDate[todayKey()] || [],
+          achievements: Array.isArray(profile.achievements)
+            ? profile.achievements.map((achievement) => ({ ...achievement, date: normalizeDateKey(achievement.date) }))
+            : [],
           id: profile.id || `child-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
           childName: profile.childName || ""
         };
@@ -1010,7 +1064,7 @@
         localStorage.setItem(storageKey, JSON.stringify(familyState));
       }
 
-      function canUseServerSync() {
+      function canUseAccountSync() {
         return location.protocol === "http:" && ["47.111.189.215", "localhost", "127.0.0.1"].includes(location.hostname);
       }
 
@@ -1019,7 +1073,7 @@
       }
 
       function queueRemoteSave() {
-        if (!familySyncKey || isApplyingRemoteState || !canUseServerSync()) return;
+        if (!accountToken || isApplyingRemoteState || !canUseAccountSync()) return;
         window.clearTimeout(syncSaveTimer);
         syncSaveTimer = window.setTimeout(() => {
           pushRemoteState();
@@ -1027,12 +1081,12 @@
       }
 
       async function pushRemoteState() {
-        if (!familySyncKey || !canUseServerSync()) return;
+        if (!accountToken || !canUseAccountSync()) return;
         try {
           const response = await fetch("/api/state", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ key: familySyncKey, state: familyState })
+            body: JSON.stringify({ token: accountToken, state: familyState })
           });
           if (!response.ok) throw new Error("save failed");
           setSyncStatus("已同步到阿里云服务器。");
@@ -1042,40 +1096,71 @@
         }
       }
 
-      async function connectSync(showCreatedMessage = true) {
-        const inputKey = byId("familyKey").value.trim();
-        if (!inputKey) {
-          setSyncStatus("请先填写家庭口令。");
+      async function registerAccount() {
+        const username = byId("accountName").value.trim();
+        const password = byId("accountPassword").value;
+        if (!canUseAccountSync()) {
+          setSyncStatus("账号同步请使用阿里云直连地址打开。");
           return;
         }
-        if (!canUseServerSync()) {
-          setSyncStatus("服务器同步请使用阿里云直连地址打开。");
-          return;
-        }
-        familySyncKey = inputKey;
-        localStorage.setItem(syncKeyStorageKey, familySyncKey);
         try {
-          const response = await fetch(`/api/state?key=${encodeURIComponent(familySyncKey)}`, { cache: "no-store" });
-          if (!response.ok) throw new Error("load failed");
+          const response = await fetch("/api/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password, state: familyState })
+          });
           const payload = await response.json();
-          if (payload.found && payload.state) {
-            isApplyingRemoteState = true;
-            familyState = buildFamilyState(payload.state.profiles, payload.state.activeProfileId);
-            state = getActiveProfile();
-            persistLocalState();
-            isApplyingRemoteState = false;
-            setSyncStatus("已从阿里云服务器载入家庭数据。");
-            renderAll();
-            return;
-          }
-          await pushRemoteState();
-          if (showCreatedMessage) setSyncStatus("新的家庭口令已创建，当前数据已上传。");
+          if (!response.ok) throw new Error(payload.error || "register failed");
+          applyAccountSession(payload.username, payload.token, familyState);
+          setSyncStatus("注册成功，当前数据已保存到服务器。");
         } catch (error) {
-          console.warn("连接服务器同步失败。", error);
-          setSyncStatus("连接服务器失败，请确认正在使用阿里云地址。");
-        } finally {
-          isApplyingRemoteState = false;
+          setSyncStatus(error.message || "注册失败，请检查用户名和密码。");
         }
+      }
+
+      async function loginAccount() {
+        const username = byId("accountName").value.trim();
+        const password = byId("accountPassword").value;
+        if (!canUseAccountSync()) {
+          setSyncStatus("账号同步请使用阿里云直连地址打开。");
+          return;
+        }
+        try {
+          const response = await fetch("/api/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password })
+          });
+          const payload = await response.json();
+          if (!response.ok) throw new Error(payload.error || "login failed");
+          applyAccountSession(payload.username, payload.token, payload.state);
+          setSyncStatus("登录成功，已从服务器载入数据。");
+        } catch (error) {
+          setSyncStatus(error.message || "登录失败，请检查用户名和密码。");
+        }
+      }
+
+      function applyAccountSession(username, token, nextState) {
+        isApplyingRemoteState = true;
+        accountName = username;
+        accountToken = token;
+        localStorage.setItem(accountNameStorageKey, accountName);
+        localStorage.setItem(accountTokenStorageKey, accountToken);
+        familyState = buildFamilyState(nextState.profiles, nextState.activeProfileId);
+        state = getActiveProfile();
+        persistLocalState();
+        isApplyingRemoteState = false;
+        renderAll();
+      }
+
+      function logoutAccount() {
+        accountName = "";
+        accountToken = "";
+        localStorage.removeItem(accountNameStorageKey);
+        localStorage.removeItem(accountTokenStorageKey);
+        byId("accountPassword").value = "";
+        renderAll();
+        setSyncStatus("已退出登录，当前浏览器仍保留本地数据。");
       }
 
       function showStatus(message) {
@@ -1100,21 +1185,59 @@
       }
 
       function completedTasks() {
-        return tasks.filter((task) => state.completed.includes(task.id));
+        return tasksForDate(todayKey());
+      }
+
+      function dateKeyFromDate(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      }
+
+      function normalizeDateKey(value) {
+        if (!value) return todayKey();
+        if (/^\d{4}-\d{2}-\d{2}$/.test(String(value))) return String(value);
+        const parsed = new Date(String(value));
+        return Number.isNaN(parsed.getTime()) ? todayKey() : dateKeyFromDate(parsed);
       }
 
       function todayKey() {
-        return new Date().toLocaleDateString("zh-CN");
+        return dateKeyFromDate(new Date());
       }
 
       function todayAchievement() {
-        return state.achievements.find((achievement) => achievement.date === todayKey());
+        return achievementsForDate(todayKey())[0];
+      }
+
+      function completedIdsForDate(date) {
+        return state.completedByDate[normalizeDateKey(date)] || [];
+      }
+
+      function tasksForDate(date) {
+        const ids = completedIdsForDate(date);
+        return tasks.filter((task) => ids.includes(task.id));
+      }
+
+      function achievementsForDate(date) {
+        const normalizedDate = normalizeDateKey(date);
+        return state.achievements.filter((achievement) => achievement.date === normalizedDate);
+      }
+
+      function setCompletedIdsForDate(date, ids) {
+        const normalizedDate = normalizeDateKey(date);
+        state.completedByDate = { ...state.completedByDate, [normalizedDate]: ids };
+        if (normalizedDate === todayKey()) state.completed = ids;
       }
 
       function totalTodayPoints() {
-        const achievement = todayAchievement();
-        const achievementPoints = achievement ? achievement.points : 0;
-        return completedTasks().reduce((total, task) => total + task.points, achievementPoints);
+        return pointsForDate(todayKey()).total;
+      }
+
+      function pointsForDate(date) {
+        const taskPoints = tasksForDate(date).reduce((total, task) => total + task.points, 0);
+        const achievementPoints = achievementsForDate(date).reduce((total, achievement) => total + achievement.points, 0);
+        return { taskPoints, achievementPoints, total: taskPoints + achievementPoints };
       }
 
       function litDimensions() {
@@ -1134,10 +1257,11 @@
         byId("topBalance").textContent = String(state.balance);
         byId("sideBalance").textContent = String(state.balance);
         byId("childName").value = state.childName;
-        byId("familyKey").value = familySyncKey;
-        setSyncStatus(familySyncKey ? "已记住家庭口令，修改后会自动同步。" : "未连接服务器同步。");
+        byId("accountName").value = accountName;
+        setSyncStatus(accountToken ? `已登录：${accountName}，修改后会自动同步。` : "未登录，数据暂存在当前浏览器。");
         renderProfiles();
         renderAchievement();
+        renderHistory();
         renderSideTasks();
         renderDepositList();
         renderDimensionMap();
@@ -1190,10 +1314,28 @@
         `).join("");
       }
 
+      function renderHistory() {
+        const dateInput = byId("historyDate");
+        if (!dateInput.value) dateInput.value = todayKey();
+        const queryDate = normalizeDateKey(dateInput.value);
+        const points = pointsForDate(queryDate);
+        const dayTasks = tasksForDate(queryDate);
+        const dayAchievements = achievementsForDate(queryDate);
+        byId("historyTaskPoints").textContent = String(points.taskPoints);
+        byId("historyAchievementPoints").textContent = String(points.achievementPoints);
+        byId("historyTotalPoints").textContent = String(points.total);
+        byId("historyTasks").innerHTML = dayTasks.length
+          ? dayTasks.map((task) => `<article class="work-record"><p><strong>${task.title}</strong> <span class="tag">+${task.points} 成长分</span></p></article>`).join("")
+          : '<div class="empty">这一天还没有任务积分记录。</div>';
+        byId("historyAchievements").innerHTML = dayAchievements.length
+          ? dayAchievements.map((achievement) => `<article class="work-record"><p><strong>${achievement.date}</strong> <span class="tag">+${achievement.points} 成长分</span></p><p class="muted">${escapeHtml(achievement.text)}</p></article>`).join("")
+          : '<div class="empty">这一天还没有成就感加分。</div>';
+      }
+
       function renderDimensionMap() {
         const lit = litDimensions();
         byId("dimensionMap").innerHTML = dimensions.map((dimension, index) => {
-          const starCount = tasks.filter((task) => task.dim === dimension.id && state.completed.includes(task.id)).length;
+          const starCount = tasks.filter((task) => task.dim === dimension.id && completedIdsForDate(todayKey()).includes(task.id)).length;
           const stars = "★★★★★".slice(0, Math.min(5, starCount)).padEnd(5, "☆");
           return `
             <button class="dimension-card ${lit.has(dimension.id) ? "lit" : ""}" data-dimension="${dimension.id}">
@@ -1224,7 +1366,7 @@
 
       function taskRowHtml(task) {
         const dimension = getDimension(task.dim);
-        const checked = state.completed.includes(task.id);
+        const checked = completedIdsForDate(todayKey()).includes(task.id);
         return `
           <label class="task-row ${checked ? "done" : ""}">
             <input type="checkbox" data-task="${task.id}" ${checked ? "checked" : ""}>
@@ -1294,14 +1436,15 @@
       function toggleTask(taskId, checked) {
         const task = tasks.find((item) => item.id === taskId);
         if (!task) return;
-        const wasChecked = state.completed.includes(taskId);
+        const completedIds = completedIdsForDate(todayKey());
+        const wasChecked = completedIds.includes(taskId);
         if (checked && !wasChecked) {
-          state.completed = [...state.completed, taskId];
+          setCompletedIdsForDate(todayKey(), [...completedIds, taskId]);
           state.balance += task.points;
           showStatus(`${task.title}已存入${task.points}分。`);
         }
         if (!checked && wasChecked) {
-          state.completed = state.completed.filter((id) => id !== taskId);
+          setCompletedIdsForDate(todayKey(), completedIds.filter((id) => id !== taskId));
           state.balance = Math.max(0, state.balance - task.points);
           showStatus(`${task.title}已从今日存款单移除。`);
         }
@@ -1414,19 +1557,21 @@
           renderAll();
         }
         if (target.id === "completeRecommended") {
+          let completedIds = completedIdsForDate(todayKey());
           tasks.filter((task) => task.recommended).slice(0, 3).forEach((task) => {
-            if (!state.completed.includes(task.id)) {
-              state.completed = [...state.completed, task.id];
+            if (!completedIds.includes(task.id)) {
+              completedIds = [...completedIds, task.id];
               state.balance += task.points;
             }
           });
+          setCompletedIdsForDate(todayKey(), completedIds);
           showStatus("推荐三项已完成，成长分已入账。");
           saveState();
           renderAll();
         }
         if (target.id === "clearToday") {
           const removedPoints = totalTodayPoints();
-          state.completed = [];
+          setCompletedIdsForDate(todayKey(), []);
           state.achievements = state.achievements.filter((achievement) => achievement.date !== todayKey());
           state.balance = Math.max(0, state.balance - removedPoints);
           showStatus("今日任务已清空，相关成长分已撤回。");
@@ -1441,10 +1586,13 @@
         if (target.id === "saveWork") saveWork();
         if (target.id === "addProfile") addProfile();
         if (target.id === "deleteProfile") deleteActiveProfile();
-        if (target.id === "connectSync") connectSync();
-        if (target.id === "syncNow") connectSync(false);
+        if (target.id === "registerAccount") registerAccount();
+        if (target.id === "loginAccount") loginAccount();
+        if (target.id === "logoutAccount") logoutAccount();
+        if (target.id === "syncNow") pushRemoteState();
         if (target.id === "exportBackup") exportBackup();
         if (target.id === "importBackup") byId("backupFile").click();
+        if (target.id === "queryHistory") renderHistory();
       });
 
       document.addEventListener("change", (event) => {
@@ -1456,6 +1604,9 @@
         }
         if (event.target.id === "backupFile") {
           importBackupFile(event.target.files[0]);
+        }
+        if (event.target.id === "historyDate") {
+          renderHistory();
         }
       });
 
@@ -1576,8 +1727,16 @@
       }
 
       renderAll();
-      if (familySyncKey && canUseServerSync()) {
-        connectSync(false);
+      if (accountToken && canUseAccountSync()) {
+        fetch(`/api/state?token=${encodeURIComponent(accountToken)}`, { cache: "no-store" })
+          .then((response) => response.ok ? response.json() : null)
+          .then((payload) => {
+            if (!payload) return;
+            applyAccountSession(payload.username, accountToken, payload.state);
+          })
+          .catch((error) => {
+            console.warn("自动登录失败。", error);
+          });
       }
     </script>
   </body>
