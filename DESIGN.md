@@ -123,11 +123,11 @@ All spacing derives from 4px.
 - **Motion**: button press only; no continuous animation.
 
 ### Date Score Query
-- **Structure**: date picker, task point metric, achievement point metric, total metric, task and achievement detail lists.
+- **Structure**: date picker, task point metric, achievement point metric, total metric, editable task checklist, editable achievement textarea and point selector.
 - **Variants**: metric grid on desktop, stacked cards on mobile.
 - **Spacing**: --space-4 card gaps, --space-3 control gaps.
-- **States**: selected date, empty task result, empty achievement result.
-- **Accessibility**: native date input, readable metric labels, empty states as text.
+- **States**: selected date, checked task, empty achievement, saved correction, restored current record.
+- **Accessibility**: native date input, native checkbox list, labeled selector and textarea, status line confirms saved corrections.
 - **Motion**: tab reveal only.
 
 ### Achievement Deposit

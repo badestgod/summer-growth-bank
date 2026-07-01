@@ -818,7 +818,7 @@
           <section id="history" class="page" aria-labelledby="historyTitle">
             <div class="page-header">
               <h2 id="historyTitle">按日期查询积分</h2>
-              <p class="page-lead">选择某一天，查看这个孩子当天完成了哪些任务、成就感加了多少分。</p>
+              <p class="page-lead">选择某一天，查看并修正这个孩子当天完成了哪些任务、成就感加了多少分。</p>
             </div>
             <article class="card">
               <div class="achievement-form">
@@ -836,13 +836,27 @@
             </div>
             <div class="two-column" style="margin-top: var(--space-4);">
               <article class="card">
-                <h3>当天完成的任务</h3>
+                <h3>当天任务修改</h3>
                 <div id="historyTasks" class="work-list"></div>
               </article>
               <article class="card">
-                <h3>当天成就感记录</h3>
-                <div id="historyAchievements" class="work-list"></div>
+                <h3>当天成就感修改</h3>
+                <div class="deposit-form">
+                  <textarea id="historyAchievementText" placeholder="补写或修改这一天最有成就感的事情"></textarea>
+                  <label for="historyAchievementEditPoints"><strong>成就加分</strong></label>
+                  <select id="historyAchievementEditPoints">
+                    <option value="0">不加分 / 删除记录</option>
+                    <option value="1">+1 成长分</option>
+                    <option value="2">+2 成长分</option>
+                    <option value="3">+3 成长分</option>
+                    <option value="5">+5 成长分</option>
+                  </select>
+                </div>
               </article>
+            </div>
+            <div class="toolbar" style="margin-top: var(--space-4);">
+              <button class="primary-button" id="saveHistoryEdits">保存这一天修改</button>
+              <button class="ghost-button" id="resetHistoryEdits">恢复当前记录</button>
             </div>
           </section>
 
@@ -1319,17 +1333,66 @@
         if (!dateInput.value) dateInput.value = todayKey();
         const queryDate = normalizeDateKey(dateInput.value);
         const points = pointsForDate(queryDate);
-        const dayTasks = tasksForDate(queryDate);
-        const dayAchievements = achievementsForDate(queryDate);
+        const completedIds = completedIdsForDate(queryDate);
+        const dayAchievement = achievementsForDate(queryDate)[0];
         byId("historyTaskPoints").textContent = String(points.taskPoints);
         byId("historyAchievementPoints").textContent = String(points.achievementPoints);
         byId("historyTotalPoints").textContent = String(points.total);
-        byId("historyTasks").innerHTML = dayTasks.length
-          ? dayTasks.map((task) => `<article class="work-record"><p><strong>${task.title}</strong> <span class="tag">+${task.points} 成长分</span></p></article>`).join("")
-          : '<div class="empty">这一天还没有任务积分记录。</div>';
-        byId("historyAchievements").innerHTML = dayAchievements.length
-          ? dayAchievements.map((achievement) => `<article class="work-record"><p><strong>${achievement.date}</strong> <span class="tag">+${achievement.points} 成长分</span></p><p class="muted">${escapeHtml(achievement.text)}</p></article>`).join("")
-          : '<div class="empty">这一天还没有成就感加分。</div>';
+        byId("historyTasks").innerHTML = tasks.map((task) => {
+          const dimension = getDimension(task.dim);
+          const checked = completedIds.includes(task.id);
+          return `
+            <label class="task-row ${checked ? "done" : ""}">
+              <input type="checkbox" data-history-task="${task.id}" ${checked ? "checked" : ""}>
+              <span>
+                <span class="task-title">${task.title}</span>
+                <span class="tag">${dimension ? dimension.name : ""}</span>
+              </span>
+              <span class="point-badge"><span class="coin">分</span>+${task.points}</span>
+            </label>
+          `;
+        }).join("");
+        byId("historyAchievementText").value = dayAchievement ? dayAchievement.text : "";
+        byId("historyAchievementEditPoints").value = dayAchievement ? String(dayAchievement.points) : "0";
+      }
+
+      function selectedHistoryDate() {
+        return normalizeDateKey(byId("historyDate").value || todayKey());
+      }
+
+      function selectedHistoryTaskIds() {
+        return Array.from(document.querySelectorAll("[data-history-task]:checked"))
+          .map((input) => input.dataset.historyTask)
+          .filter(Boolean);
+      }
+
+      function saveHistoryEdits() {
+        const queryDate = selectedHistoryDate();
+        const previousPoints = pointsForDate(queryDate).total;
+        const nextTaskIds = selectedHistoryTaskIds();
+        const achievementText = byId("historyAchievementText").value.trim();
+        const achievementPoints = Number(byId("historyAchievementEditPoints").value);
+        if (!achievementText && achievementPoints > 0) {
+          showStatus("请先写下这一天最有成就感的事，再保存成就加分。");
+          byId("historyAchievementText").focus();
+          return;
+        }
+        setCompletedIdsForDate(queryDate, nextTaskIds);
+        state.achievements = state.achievements.filter((achievement) => achievement.date !== queryDate);
+        if (achievementText && achievementPoints > 0) {
+          state.achievements = [...state.achievements, { date: queryDate, text: achievementText, points: achievementPoints }];
+        }
+        const nextPoints = pointsForDate(queryDate).total;
+        state.balance = Math.max(0, state.balance - previousPoints + nextPoints);
+        saveState();
+        showStatus(`${queryDate} 的积分记录已更新。`);
+        renderAll();
+        setTab("history");
+      }
+
+      function resetHistoryEdits() {
+        renderHistory();
+        showStatus("已恢复为当前保存的日期记录。");
       }
 
       function renderDimensionMap() {
@@ -1593,6 +1656,8 @@
         if (target.id === "exportBackup") exportBackup();
         if (target.id === "importBackup") byId("backupFile").click();
         if (target.id === "queryHistory") renderHistory();
+        if (target.id === "saveHistoryEdits") saveHistoryEdits();
+        if (target.id === "resetHistoryEdits") resetHistoryEdits();
       });
 
       document.addEventListener("change", (event) => {
