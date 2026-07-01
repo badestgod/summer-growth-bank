@@ -818,7 +818,7 @@
           <section id="history" class="page" aria-labelledby="historyTitle">
             <div class="page-header">
               <h2 id="historyTitle">按日期查询积分</h2>
-              <p class="page-lead">选择某一天，查看并修正这个孩子当天完成了哪些任务、成就感加了多少分。</p>
+              <p class="page-lead">选择某一天，查看固定分值，并修正这个孩子那一天完成了哪些任务、成就感加了多少分。</p>
             </div>
             <article class="card">
               <div class="achievement-form">
@@ -836,11 +836,11 @@
             </div>
             <div class="two-column" style="margin-top: var(--space-4);">
               <article class="card">
-                <h3>当天任务修改</h3>
+                <h3 id="historyTaskTitle">所选日期任务修改</h3>
                 <div id="historyTasks" class="work-list"></div>
               </article>
               <article class="card">
-                <h3>当天成就感修改</h3>
+                <h3 id="historyAchievementTitle">所选日期成就感修改</h3>
                 <div class="deposit-form">
                   <textarea id="historyAchievementText" placeholder="补写或修改这一天最有成就感的事情"></textarea>
                   <label for="historyAchievementEditPoints"><strong>成就加分</strong></label>
@@ -1335,6 +1335,8 @@
         const points = pointsForDate(queryDate);
         const completedIds = completedIdsForDate(queryDate);
         const dayAchievement = achievementsForDate(queryDate)[0];
+        byId("historyTaskTitle").textContent = `${queryDate} 任务修改`;
+        byId("historyAchievementTitle").textContent = `${queryDate} 成就感修改`;
         byId("historyTaskPoints").textContent = String(points.taskPoints);
         byId("historyAchievementPoints").textContent = String(points.achievementPoints);
         byId("historyTotalPoints").textContent = String(points.total);
@@ -1371,7 +1373,7 @@
         const previousPoints = pointsForDate(queryDate).total;
         const nextTaskIds = selectedHistoryTaskIds();
         const achievementText = byId("historyAchievementText").value.trim();
-        const achievementPoints = Number(byId("historyAchievementEditPoints").value);
+        const achievementPoints = Math.max(0, Math.min(99, Number(byId("historyAchievementEditPoints").value) || 0));
         if (!achievementText && achievementPoints > 0) {
           showStatus("请先写下这一天最有成就感的事，再保存成就加分。");
           byId("historyAchievementText").focus();
